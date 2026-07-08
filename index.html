@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Special Offer</title>
+  <meta name="description" content="Discover today's special offer." />
+
+  <!-- ==========================
+       Replace with your Meta Pixel ID
+       ========================== -->
+  <script>
+    !(function(f,b,e,v,n,t,s){
+      if(f.fbq)return;
+      n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;
+      n.push=n;
+      n.loaded=!0;
+      n.version='2.0';
+      n.queue=[];
+      t=b.createElement(e);
+      t.async=!0;
+      t.src='https://connect.facebook.net/en_US/fbevents.js';
+      s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s);
+    })(window, document,'script');
+
+    fbq('init', 'YOUR_PIXEL_ID');
+    fbq('track', 'PageView');
+    fbq('track', 'ViewContent');
+  </script>
+
+  <noscript>
+    <img
+      height="1"
+      width="1"
+      style="display:none"
+      src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"
+      alt=""
+    />
+  </noscript>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    body{
+      background:linear-gradient(135deg,#ff6a00,#ffb347);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      color:#222;
+      padding:20px;
+    }
+
+    .card{
+      width:100%;
+      max-width:450px;
+      background:#fff;
+      border-radius:18px;
+      padding:35px;
+      text-align:center;
+      box-shadow:0 20px 40px rgba(0,0,0,.15);
+    }
+
+    h1{
+      font-size:32px;
+      margin-bottom:10px;
+    }
+
+    h2{
+      color:#ff6a00;
+      margin-bottom:15px;
+    }
+
+    p{
+      line-height:1.6;
+      color:#555;
+    }
+
+    .timer{
+      margin:25px 0;
+      font-size:22px;
+      font-weight:bold;
+      color:#e53935;
+    }
+
+    .btn{
+      display:inline-block;
+      background:#ff6a00;
+      color:white;
+      text-decoration:none;
+      padding:16px 28px;
+      border-radius:10px;
+      font-size:18px;
+      transition:.3s;
+    }
+
+    .btn:hover{
+      background:#e65c00;
+    }
+
+    .small{
+      margin-top:20px;
+      font-size:13px;
+      color:#777;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <h1>🔥 Special Offer</h1>
+
+  <h2>Your Product Name</h2>
+
+  <p>
+    You are being redirected to the official product page.
+    If the page doesn't open automatically, click the button below.
+  </p>
+
+  <div class="timer">
+    Redirecting in
+    <span id="count">3</span>
+    seconds...
+  </div>
+
+  <a
+    class="btn"
+    id="continueBtn"
+    href="https://www.temu.com/YOUR_PRODUCT_LINK"
+  >
+    Continue to Temu
+  </a>
+
+  <div class="small">
+    Powered by Temu
+  </div>
+
+</div>
+
+<script>
+const redirectURL = "https://www.temu.com/YOUR_PRODUCT_LINK";
+let seconds = 3;
+
+const counter = document.getElementById("count");
+
+const timer = setInterval(() => {
+    seconds--;
+    counter.textContent = seconds;
+
+    if(seconds <= 0){
+        clearInterval(timer);
+
+        fbq('trackCustom','RedirectToTemu');
+
+        window.location.href = redirectURL;
+    }
+},1000);
+
+document.getElementById("continueBtn").addEventListener("click", function(){
+
+    fbq('track','Lead');
+
+    fbq('trackCustom','ContinueButtonClicked');
+
+});
+</script>
+
+</body>
+</html>
