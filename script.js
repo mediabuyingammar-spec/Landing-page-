@@ -2,7 +2,7 @@
 // Configuration
 // ======================================
 
-const REDIRECT_URL = "https://www.temu.com/YOUR_PRODUCT_LINK";
+const REDIRECT_URL = "https://temu.to/k/et8ctyts6k3";
 const REDIRECT_DELAY = 3;
 
 // ======================================
