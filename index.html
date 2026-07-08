@@ -147,8 +147,7 @@
   </div>
 
 </div>
-
-<script>
+  <script>
 const redirectURL = "https://temu.to/k/et8ctyts6k3";
 let seconds = 3;
 
@@ -158,20 +157,25 @@ const timer = setInterval(() => {
     seconds--;
     counter.textContent = seconds;
 
-    if(seconds <= 0){
+    if (seconds <= 0) {
         clearInterval(timer);
 
-        fbq('trackCustom','RedirectToTemu');
+        // Send Pixel event only if available
+        if (typeof fbq === "function") {
+            fbq('trackCustom', 'RedirectToTemu');
+        }
 
         window.location.href = redirectURL;
     }
-},1000);
+}, 1000);
+
 
 document.getElementById("continueBtn").addEventListener("click", function(){
 
-    fbq('track','Lead');
-
-    fbq('trackCustom','ContinueButtonClicked');
+    if (typeof fbq === "function") {
+        fbq('track','Lead');
+        fbq('trackCustom','ContinueButtonClicked');
+    }
 
 });
 </script>
