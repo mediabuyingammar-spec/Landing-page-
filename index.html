@@ -114,6 +114,15 @@
       font-size:13px;
       color:#777;
     }
+    .product-image{
+  width: 100%;        /* Responsive */
+  max-width: 250px;   /* Maximum size */
+  height: auto;       /* Keep aspect ratio */
+  display: block;
+  margin: 20px auto;  /* Center the image */
+  border-radius: 12px;
+  object-fit: contain;
+}
   </style>
 </head>
 <body>
@@ -124,7 +133,7 @@
 
   <h2>Smart Watch</h2>
 
-  <img src="picture.png"></img>
+  <img src="picture.png"  class="product-image"></img>
 
   <p>
     You are being redirected to the official product page.
