@@ -91,6 +91,13 @@
     font-weight:700;
     color:var(--ink);
   }
+  .sync-chip{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+    padding:5px 10px; border-radius:20px; border:1px solid var(--line); cursor:default;
+  }
+  .sync-chip.saving{ background:var(--paper-2); color:var(--slate); }
+  .sync-chip.saved{ background:#E4EEDD; color:var(--coop-green); border-color:#c7dcb9; }
+  .sync-chip.error{ background:#F2E0DA; color:var(--barn-red); border-color:var(--barn-red); cursor:pointer; }
   .perf{
     height:14px; margin-top:6px;
     background-image: radial-gradient(circle at 10px 0, var(--paper) 6px, transparent 7px);
@@ -230,6 +237,7 @@
     <div class="clock-row">
       <span>Ledger time (Qatar) —</span>
       <span class="clock-chip mono" id="liveClock">--:--:--</span>
+      <span class="sync-chip" id="syncStatus" title="Click to retry saving if it ever shows 'Save failed'">Loading saved data…</span>
     </div>
     <div class="perf"></div>
   </div>
@@ -439,25 +447,46 @@
 
   // ---------- storage ----------
   async function loadData(){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      if(res && res.value){
-        const parsed = JSON.parse(res.value);
-        state.settings = Object.assign(state.settings, parsed.settings || {});
-        state.roomEntries = parsed.roomEntries || [];
-        state.salesEntries = parsed.salesEntries || [];
+    const attempts = 3;
+    for(let i=0;i<attempts;i++){
+      try{
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if(res && res.value){
+          const parsed = JSON.parse(res.value);
+          state.settings = Object.assign(state.settings, parsed.settings || {});
+          state.roomEntries = parsed.roomEntries || [];
+          state.salesEntries = parsed.salesEntries || [];
+        }
+        return;
+      }catch(e){
+        if(i < attempts-1){ await new Promise(r=>setTimeout(r,400)); continue; }
+        console.log("No existing saved data found, or load failed after retries:", e);
       }
-    }catch(e){
-      console.log("No existing data yet or failed to load:", e);
     }
   }
   async function saveData(){
-    try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
-    }catch(e){
-      console.error("Storage error:", e);
-      showToast("Could not save — data kept in this session only");
+    setSyncStatus("saving");
+    const attempts = 3;
+    for(let i=0;i<attempts;i++){
+      try{
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
+        setSyncStatus("saved");
+        return true;
+      }catch(e){
+        if(i < attempts-1){ await new Promise(r=>setTimeout(r,500)); continue; }
+        console.error("Storage error:", e);
+        setSyncStatus("error");
+        showToast("Could not save this entry — check your connection and try again");
+        return false;
+      }
     }
+  }
+  function setSyncStatus(kind){
+    const el = document.getElementById("syncStatus");
+    if(!el) return;
+    if(kind==="saving"){ el.textContent = "Saving…"; el.className = "sync-chip saving"; }
+    else if(kind==="saved"){ el.textContent = "Saved"; el.className = "sync-chip saved"; }
+    else { el.textContent = "Save failed — retry"; el.className = "sync-chip error"; }
   }
 
   // ---------- computed ----------
@@ -893,8 +922,15 @@
   });
 
   // ---------- init ----------
+  document.getElementById("syncStatus").addEventListener("click", ()=>{
+    if(document.getElementById("syncStatus").classList.contains("error")){
+      saveData();
+    }
+  });
+
   async function init(){
     await loadData();
+    setSyncStatus("saved");
     document.getElementById("setRoom1Name").value = state.settings.room1Name;
     document.getElementById("setRoom2Name").value = state.settings.room2Name;
     document.getElementById("setRoom1Stock").value = state.settings.room1Stock;
