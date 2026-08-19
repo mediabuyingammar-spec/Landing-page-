@@ -1,195 +1,909 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="agricultural.png">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fouad Food — Farm Operations Ledger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#23201B;
+    --paper:#F1E9D2;
+    --paper-2:#E8DCB8;
+    --card:#FBF7EA;
+    --gold:#C9962C;
+    --gold-dark:#A87A1E;
+    --barn-red:#8C3B2E;
+    --coop-green:#4B6B3A;
+    --slate:#6B655A;
+    --line:#C9B98B;
+    --white:#FFFDF7;
+    --shadow: 0 2px 0 rgba(35,32,27,0.08), 0 8px 20px -12px rgba(35,32,27,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #f7f0da 0%, transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .display{ font-family: Rockwell, "Roboto Slab", Georgia, "Times New Roman", serif; }
+  .mono{ font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
 
-  <title>Special Offer</title>
-  <meta name="description" content="Discover today's special offer." />
+  #app{ max-width:1180px; margin:0 auto; padding:18px 16px 60px; }
 
-  <!-- ==========================
-       Replace with your Meta Pixel ID
-       ========================== -->
-  <script>
-    !(function(f,b,e,v,n,t,s){
-      if(f.fbq)return;
-      n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;
-      n.push=n;
-      n.loaded=!0;
-      n.version='2.0';
-      n.queue=[];
-      t=b.createElement(e);
-      t.async=!0;
-      t.src='https://connect.facebook.net/en_US/fbevents.js';
-      s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s);
-    })(window, document,'script');
+  /* ---------- Ticket header ---------- */
+  .ticket{
+    position:relative;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:22px 26px 18px;
+    overflow:hidden;
+  }
+  .ticket::before{
+    content:"";
+    position:absolute; left:0; right:0; bottom:0; height:0;
+    border-bottom:2px dashed var(--line);
+  }
+  .stamp{
+    position:absolute; top:14px; right:18px;
+    transform:rotate(6deg);
+    border:2.5px solid var(--barn-red);
+    color:var(--barn-red);
+    padding:4px 10px;
+    border-radius:6px;
+    font-weight:800;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    opacity:0.85;
+  }
+  .brand-row{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  .brand-name{
+    font-size:34px; font-weight:800; letter-spacing:0.5px; color:var(--ink);
+    margin:0;
+  }
+  .brand-tag{
+    color:var(--gold-dark);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    border-left:3px solid var(--gold);
+    padding-left:10px;
+  }
+  .brand-sub{ color:var(--slate); font-size:13.5px; margin-top:4px; }
+  .clock-row{
+    display:flex; align-items:center; gap:10px; margin-top:14px;
+    font-size:13px; color:var(--slate);
+  }
+  .clock-chip{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:6px 12px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .perf{
+    height:14px; margin-top:6px;
+    background-image: radial-gradient(circle at 10px 0, var(--paper) 6px, transparent 7px);
+    background-size:20px 14px;
+    background-repeat:repeat-x;
+    background-position: 0 -7px;
+  }
 
-    fbq('init', '2271785110294582');
-    fbq('track', 'PageView');
-    fbq('track', 'ViewContent');
-  </script>
+  /* ---------- Tabs ---------- */
+  .tabs{ display:flex; gap:6px; margin:18px 0 16px; flex-wrap:wrap; }
+  .tab{
+    font-family:inherit; font-weight:700; font-size:13.5px;
+    padding:10px 16px; border-radius:9px 9px 0 0;
+    background:var(--paper-2); color:var(--slate);
+    border:1px solid var(--line); border-bottom:none;
+    cursor:pointer; letter-spacing:0.3px;
+    transition:background .15s, color .15s;
+  }
+  .tab.active{ background:var(--card); color:var(--ink); box-shadow:0 -2px 0 var(--gold) inset; }
+  .tab:hover{ color:var(--ink); }
 
-  <noscript>
-    <img
-      height="1"
-      width="1"
-      style="display:none"
-      src="https://www.facebook.com/tr?id=2271785110294582&ev=PageView&noscript=1"
-      alt=""
-    />
-  </noscript>
+  .panel{ display:none; background:var(--card); border:1px solid var(--line); border-radius:0 12px 12px 12px; padding:20px; box-shadow:var(--shadow); }
+  .panel.active{ display:block; }
 
-  <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family:Arial, Helvetica, sans-serif;
-    }
+  h2.section-title{ font-family: inherit; font-size:17px; margin:0 0 14px; display:flex; align-items:center; gap:10px; }
+  h2.section-title .tick{ width:8px; height:8px; background:var(--gold); border-radius:2px; transform:rotate(45deg); display:inline-block; }
 
-    body{
-      background:linear-gradient(135deg,#ff6a00,#ffb347);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:100vh;
-      color:#222;
-      padding:20px;
-    }
+  /* ---------- KPI row ---------- */
+  .kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-bottom:22px; }
+  .kpi{
+    background:var(--white); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; position:relative;
+  }
+  .kpi .label{ font-size:10.5px; text-transform:uppercase; letter-spacing:1.2px; color:var(--slate); font-weight:700; }
+  .kpi .value{ font-size:22px; font-weight:800; margin-top:4px; }
+  .kpi.red .value{ color:var(--barn-red); }
+  .kpi.green .value{ color:var(--coop-green); }
+  .kpi.gold .value{ color:var(--gold-dark); }
 
-    .card{
-      width:100%;
-      max-width:450px;
-      background:#fff;
-      border-radius:18px;
-      padding:35px;
-      text-align:center;
-      box-shadow:0 20px 40px rgba(0,0,0,.15);
-    }
+  /* ---------- Charts ---------- */
+  .chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:820px){ .chart-grid{ grid-template-columns:1fr; } }
+  .chart-card{
+    background:var(--white); border:1px solid var(--line); border-radius:10px; padding:14px;
+  }
+  .chart-card h3{ margin:0 0 10px; font-size:13px; color:var(--ink); font-weight:700; }
+  .chart-card canvas{ max-height:230px; }
 
-    h1{
-      font-size:32px;
-      margin-bottom:10px;
-    }
+  /* ---------- Forms ---------- */
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; margin-bottom:16px; }
+  label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--slate); display:block; margin-bottom:5px; }
+  input, select{
+    width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line);
+    background:var(--white); color:var(--ink); font-size:14px; font-family:inherit;
+  }
+  input:focus, select:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .btn{
+    font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer;
+    padding:10px 18px; border-radius:8px; border:1px solid var(--gold-dark);
+    background:var(--gold); color:var(--white); letter-spacing:0.3px;
+  }
+  .btn:hover{ background:var(--gold-dark); }
+  .btn.secondary{ background:var(--white); color:var(--ink); border-color:var(--line); }
+  .btn.secondary:hover{ background:var(--paper-2); }
+  .btn.danger{ background:var(--white); color:var(--barn-red); border-color:var(--barn-red); }
+  .btn.danger:hover{ background:var(--barn-red); color:var(--white); }
+  .btn.small{ padding:5px 10px; font-size:12px; }
+  .stamp-value{ font-weight:700; color:var(--ink); }
+  .note{ font-size:12px; color:var(--slate); margin-top:2px; }
+  .total-preview{
+    background:var(--paper-2); border:1px dashed var(--gold-dark); border-radius:8px;
+    padding:10px 14px; font-size:14px; font-weight:700; margin-bottom:14px;
+  }
 
-    h2{
-      color:#ff6a00;
-      margin-bottom:15px;
-    }
+  /* ---------- Tables ---------- */
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{
+    text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.8px;
+    color:var(--white); background:var(--ink); padding:9px 10px;
+  }
+  thead th:first-child{ border-radius:6px 0 0 0; }
+  thead th:last-child{ border-radius:0 6px 0 0; }
+  tbody td{ padding:8px 10px; border-bottom:1px solid var(--line); }
+  tbody tr:hover{ background:var(--paper-2); }
+  tbody tr:last-child td{ border-bottom:none; }
+  .tag{ display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
+  .tag.room1{ background:#E4EEDD; color:var(--coop-green); }
+  .tag.room2{ background:#F2E3D8; color:var(--barn-red); }
+  .table-wrap{ overflow-x:auto; border-radius:8px; margin-bottom:20px; }
+  .empty-row td{ text-align:center; color:var(--slate); padding:22px; font-style:italic; }
 
-    p{
-      line-height:1.6;
-      color:#555;
-    }
+  .settings-box{
+    background:var(--white); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:20px;
+  }
+  .settings-box summary{ cursor:pointer; font-weight:700; font-size:13.5px; }
 
-    .timer{
-      margin:25px 0;
-      font-size:22px;
-      font-weight:bold;
-      color:#e53935;
-    }
+  .export-card{
+    background:var(--white); border:1px solid var(--line); border-radius:10px; padding:22px; text-align:center; margin-bottom:16px;
+  }
+  .export-card p{ color:var(--slate); font-size:13.5px; max-width:520px; margin:8px auto 16px; }
 
-    .btn{
-      display:inline-block;
-      background:#ff6a00;
-      color:white;
-      text-decoration:none;
-      padding:16px 28px;
-      border-radius:10px;
-      font-size:18px;
-      transition:.3s;
-    }
+  .footer-note{ text-align:center; color:var(--slate); font-size:11.5px; margin-top:24px; }
 
-    .btn:hover{
-      background:#e65c00;
-    }
-
-    .small{
-      margin-top:20px;
-      font-size:13px;
-      color:#777;
-    }
-  .product-image{
-  width: 100%;        /* Responsive */
-  max-width: 250px;   /* Maximum size */
-  height: auto;       /* Keep aspect ratio */
-  display: block;
-  margin: 20px auto;  /* Center the image */
-  border-radius: 12px;
-  object-fit: contain;
-}
-  </style>
+  .stamp-toggle{
+    display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;
+    background:var(--paper-2); border:1px solid var(--line); border-radius:8px; padding:9px 12px;
+  }
+  .stamp-toggle label.switch-label{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--ink); text-transform:none; letter-spacing:0; margin:0; cursor:pointer; }
+  .switch{ position:relative; width:38px; height:21px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .slider{ position:absolute; inset:0; background:#B8AC86; border-radius:20px; transition:.15s; cursor:pointer; }
+  .switch .slider::before{ content:""; position:absolute; width:16px; height:16px; left:2.5px; top:2.5px; background:var(--white); border-radius:50%; transition:.15s; }
+  .switch input:checked + .slider{ background:var(--coop-green); }
+  .switch input:checked + .slider::before{ transform:translateX(17px); }
+  .manual-datetime{ display:none; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .manual-datetime.show{ display:flex; }
+  .manual-datetime input{ width:auto; min-width:160px; }
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--white); padding:10px 18px; border-radius:8px;
+    font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s, bottom .25s;
+    z-index:999;
+  }
+  .toast.show{ opacity:1; bottom:30px; }
+</style>
 </head>
 <body>
+<div id="app">
 
-<div class="card">
-
-  <h1>🔥 Special Offer</h1>
-
-  <h2>Smart Watch</h2>
-
-  <img src="picture.png" alt="Smart Watch" class="product-image">
-
-  <p>
-    You are being redirected to the official product page.
-    If the page doesn't open automatically, click the button below.
-  </p>
-
-  <div class="timer">
-    Redirecting in
-    <span id="count">3</span>
-    seconds...
+  <div class="ticket">
+    <div class="stamp">Est. Ledger</div>
+    <div class="brand-row">
+      <h1 class="brand-name display">Fouad Food</h1>
+      <span class="brand-tag">Poultry Farm Records</span>
+    </div>
+    <div class="brand-sub">Two-room mortality &amp; feed log · live-bird sales ledger · Doha, Qatar</div>
+    <div class="clock-row">
+      <span>Ledger time (Qatar) —</span>
+      <span class="clock-chip mono" id="liveClock">--:--:--</span>
+    </div>
+    <div class="perf"></div>
   </div>
 
-  <a
-    class="btn"
-    id="continueBtn"
-    href="https://onelink.shein.com/41/5v4557v6pjb8"
-  >
-    Continue to Temu
-  </a>
-
-  <div class="small">
-    Powered by Temu
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="rooms">Room Log</button>
+    <button class="tab" data-tab="sales">Sales Ledger</button>
+    <button class="tab" data-tab="data">Data &amp; Export</button>
   </div>
 
+  <!-- DASHBOARD -->
+  <section class="panel active" id="panel-dashboard">
+    <h2 class="section-title"><span class="tick"></span>Business overview</h2>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3 id="r1title">Room 1 — Dead vs Feed (daily)</h3><canvas id="chartRoom1"></canvas></div>
+      <div class="chart-card"><h3 id="r2title">Room 2 — Dead vs Feed (daily)</h3><canvas id="chartRoom2"></canvas></div>
+      <div class="chart-card"><h3>Mortality — Room 1 vs Room 2 (daily)</h3><canvas id="chartDeadCompare"></canvas></div>
+      <div class="chart-card"><h3>Feed usage — Room 1 vs Room 2 (daily, packets)</h3><canvas id="chartFeedCompare"></canvas></div>
+      <div class="chart-card"><h3>Live stock over time (both rooms)</h3><canvas id="chartStock"></canvas></div>
+      <div class="chart-card"><h3>Sales revenue over time (QAR)</h3><canvas id="chartRevenue"></canvas></div>
+      <div class="chart-card" style="grid-column:1 / -1;"><h3>Top merchants by revenue</h3><canvas id="chartMerchants"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ROOM LOG -->
+  <section class="panel" id="panel-rooms">
+    <details class="settings-box" open>
+      <summary>Farm setup — room names &amp; starting stock</summary>
+      <div class="form-grid" style="margin-top:14px;">
+        <div><label>Room 1 name</label><input id="setRoom1Name" type="text" value="Room 1"></div>
+        <div><label>Room 1 starting stock (chicks)</label><input id="setRoom1Stock" type="number" min="0" value="0"></div>
+        <div><label>Room 2 name</label><input id="setRoom2Name" type="text" value="Room 2"></div>
+        <div><label>Room 2 starting stock (chicks)</label><input id="setRoom2Stock" type="number" min="0" value="0"></div>
+        <div><button class="btn" id="saveSettingsBtn">Save setup</button></div>
+      </div>
+      <div class="note">Starting stock is the number of chicks placed in each room at the start of the cycle. Live stock is then calculated automatically as stock − deaths − birds sold from that room.</div>
+    </details>
+
+    <h2 class="section-title"><span class="tick"></span>Log today's room entry</h2>
+    <div class="stamp-toggle">
+      <label class="switch-label"><span class="switch"><input type="checkbox" id="roomAutoStamp" checked><span class="slider"></span></span>Auto-stamp with current Qatar time</label>
+      <span class="note" id="roomStampNote" style="margin:0;">Turn off to back-date this entry or fix a missed log.</span>
+    </div>
+    <div class="manual-datetime" id="roomManualDT">
+      <div><label>Date (Qatar)</label><input id="roomManualDate" type="date"></div>
+      <div><label>Time (Qatar)</label><input id="roomManualTime" type="time"></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Room</label>
+        <select id="entryRoom"><option value="room1">Room 1</option><option value="room2">Room 2</option></select>
+      </div>
+      <div><label>Dead birds today</label><input id="entryDead" type="number" min="0" value="0"></div>
+      <div><label>Feed packets used</label><input id="entryFeed" type="number" min="0" value="0"></div>
+      <div><label>Note (optional)</label><input id="entryNote" type="text" placeholder="e.g. vaccination, heat stress"></div>
+      <div><button class="btn" id="addRoomEntryBtn">Record entry</button></div>
+    </div>
+
+    <h2 class="section-title"><span class="tick"></span>Room entries</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Time</th><th>Room</th><th>Dead</th><th>Feed packets</th><th>Note</th><th></th></tr></thead>
+        <tbody id="roomTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SALES -->
+  <section class="panel" id="panel-sales">
+    <h2 class="section-title"><span class="tick"></span>Record a live-bird sale</h2>
+    <div class="stamp-toggle">
+      <label class="switch-label"><span class="switch"><input type="checkbox" id="saleAutoStamp" checked><span class="slider"></span></span>Auto-stamp with current Qatar time</label>
+      <span class="note" style="margin:0;">Turn off to back-date this sale.</span>
+    </div>
+    <div class="manual-datetime" id="saleManualDT">
+      <div><label>Date (Qatar)</label><input id="saleManualDate" type="date"></div>
+      <div><label>Time (Qatar)</label><input id="saleManualTime" type="time"></div>
+    </div>
+    <div class="note" style="margin-bottom:10px;">Total is calculated automatically from quantity × price per bird.</div>
+    <div class="form-grid">
+      <div><label>Merchant / buyer name</label><input id="saleMerchant" type="text" list="merchantList" placeholder="e.g. Al Wakra Trading"><datalist id="merchantList"></datalist></div>
+      <div><label>Room carried from</label>
+        <select id="saleRoom"><option value="">Not specified</option><option value="room1">Room 1</option><option value="room2">Room 2</option></select>
+      </div>
+      <div><label>Number of chickens</label><input id="saleQty" type="number" min="0" value="0"></div>
+      <div><label>Price per chicken (QAR)</label><input id="salePrice" type="number" min="0" step="0.01" value="0"></div>
+      <div><button class="btn" id="addSaleBtn">Record sale</button></div>
+    </div>
+    <div class="total-preview">Total for this sale: <span id="salePreviewTotal" class="mono">0.00 QAR</span></div>
+
+    <h2 class="section-title"><span class="tick"></span>Sales entries</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Time</th><th>Merchant</th><th>Room</th><th>Qty</th><th>Price/bird</th><th>Total</th><th></th></tr></thead>
+        <tbody id="salesTableBody"></tbody>
+      </table>
+    </div>
+
+    <h2 class="section-title"><span class="tick"></span>Merchant summary</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Merchant</th><th>Transactions</th><th>Total birds</th><th>Total revenue</th><th>Avg price/bird</th></tr></thead>
+        <tbody id="merchantTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DATA & EXPORT -->
+  <section class="panel" id="panel-data">
+    <h2 class="section-title"><span class="tick"></span>Export to Excel</h2>
+    <div class="export-card">
+      <div style="font-size:30px;">📊</div>
+      <p>Generates one workbook with a Room Log sheet, a Sales Ledger sheet, a Merchant Summary sheet and a Farm Summary sheet — ready to send to the owner or accountant.</p>
+      <button class="btn" id="exportBtn">Download Excel report (.xlsx)</button>
+    </div>
+
+    <h2 class="section-title"><span class="tick"></span>Storage</h2>
+    <div class="settings-box">
+      <p class="note" style="margin:0 0 10px;">Entries are saved automatically as you go and are shared with everyone who opens this ledger, so staff across shifts see the same live numbers. There is no fixed size limit for day-to-day farm logging.</p>
+      <button class="btn danger small" id="resetBtn">Reset all data</button>
+    </div>
+  </section>
+
+  <div class="footer-note">Fouad Food — internal farm operations tool · all figures in QAR unless noted</div>
 </div>
-  <script>
-const redirectURL = "https://onelink.shein.com/41/5v4557v6pjb8";
-let seconds = 3;
 
-const counter = document.getElementById("count");
+<div class="toast" id="toast"></div>
 
-const timer = setInterval(() => {
-    seconds--;
-    counter.textContent = seconds;
+<script>
+(function(){
+  "use strict";
 
-    if (seconds <= 0) {
-        clearInterval(timer);
+  const TZ = "Asia/Qatar";
+  const STORAGE_KEY = "fouad_food_farm_data_v1";
 
-        // Send Pixel event only if available
-        if (typeof fbq === "function") {
-            fbq('trackCustom', 'RedirectToTemu');
-        }
+  let state = {
+    settings: { room1Name:"Room 1", room2Name:"Room 2", room1Stock:0, room2Stock:0 },
+    roomEntries: [],
+    salesEntries: []
+  };
 
-        window.location.href = redirectURL;
+  let charts = {};
+
+  // ---------- helpers ----------
+  function uid(){
+    return (crypto && crypto.randomUUID) ? crypto.randomUUID() : ("id_" + Date.now() + "_" + Math.random().toString(16).slice(2));
+  }
+  function fmtDate(ts){
+    return new Intl.DateTimeFormat("en-GB", { timeZone:TZ, day:"2-digit", month:"short", year:"numeric" }).format(new Date(ts));
+  }
+  function fmtTime(ts){
+    return new Intl.DateTimeFormat("en-GB", { timeZone:TZ, hour:"2-digit", minute:"2-digit", hour12:true }).format(new Date(ts));
+  }
+  function dateKey(ts){
+    return new Intl.DateTimeFormat("en-CA", { timeZone:TZ }).format(new Date(ts));
+  }
+  function money(n){
+    return (Math.round((n||0)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) + " QAR";
+  }
+  function num(n){ return (n||0).toLocaleString(); }
+  function roomName(key){
+    if(key === "room1") return state.settings.room1Name || "Room 1";
+    if(key === "room2") return state.settings.room2Name || "Room 2";
+    return "Unspecified";
+  }
+  // Qatar has no daylight saving, fixed UTC+3 year-round.
+  function qatarTodayInputValue(){
+    return new Intl.DateTimeFormat("en-CA", { timeZone:TZ }).format(new Date());
+  }
+  function qatarNowTimeInputValue(){
+    return new Intl.DateTimeFormat("en-GB", { timeZone:TZ, hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date());
+  }
+  function parseQatarManual(dateStr, timeStr){
+    if(!dateStr || !timeStr) return null;
+    const t = new Date(dateStr + "T" + timeStr + ":00+03:00");
+    const ms = t.getTime();
+    return isNaN(ms) ? null : ms;
+  }
+  function wireStampToggle(toggleId, boxId, dateId, timeId){
+    const toggle = document.getElementById(toggleId);
+    const box = document.getElementById(boxId);
+    toggle.addEventListener("change", ()=>{
+      if(!toggle.checked){
+        document.getElementById(dateId).value = qatarTodayInputValue();
+        document.getElementById(timeId).value = qatarNowTimeInputValue();
+        box.classList.add("show");
+      } else {
+        box.classList.remove("show");
+      }
+    });
+  }
+  function resolveTimestamp(autoToggleId, dateId, timeId){
+    const auto = document.getElementById(autoToggleId).checked;
+    if(auto) return Date.now();
+    const ms = parseQatarManual(document.getElementById(dateId).value, document.getElementById(timeId).value);
+    if(ms===null){ showToast("Enter a valid manual date and time"); return null; }
+    return ms;
+  }
+
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=> t.classList.remove("show"), 2200);
+  }
+
+  // ---------- storage ----------
+  async function loadData(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        state.settings = Object.assign(state.settings, parsed.settings || {});
+        state.roomEntries = parsed.roomEntries || [];
+        state.salesEntries = parsed.salesEntries || [];
+      }
+    }catch(e){
+      console.log("No existing data yet or failed to load:", e);
     }
-}, 1000);
-
-
-document.getElementById("continueBtn").addEventListener("click", function(){
-
-    if (typeof fbq === "function") {
-        fbq('track','Lead');
-        fbq('trackCustom','ContinueButtonClicked');
+  }
+  async function saveData(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
+    }catch(e){
+      console.error("Storage error:", e);
+      showToast("Could not save — data kept in this session only");
     }
+  }
 
-});
+  // ---------- computed ----------
+  function totalDead(room){
+    return state.roomEntries.filter(e=>e.room===room).reduce((s,e)=>s+Number(e.dead||0),0);
+  }
+  function totalFeed(room){
+    return state.roomEntries.filter(e=>e.room===room).reduce((s,e)=>s+Number(e.feed||0),0);
+  }
+  function soldFromRoom(room){
+    return state.salesEntries.filter(s=>s.room===room).reduce((s,e)=>s+Number(e.qty||0),0);
+  }
+  function liveStock(room){
+    const start = Number(state.settings[room+"Stock"]||0);
+    return Math.max(0, start - totalDead(room) - soldFromRoom(room));
+  }
+  function mortalityRate(room){
+    const start = Number(state.settings[room+"Stock"]||0);
+    if(start<=0) return 0;
+    return (totalDead(room)/start)*100;
+  }
+  function totalRevenue(){
+    return state.salesEntries.reduce((s,e)=>s+Number(e.total||0),0);
+  }
+  function totalBirdsSold(){
+    return state.salesEntries.reduce((s,e)=>s+Number(e.qty||0),0);
+  }
+  function dailySeries(room){
+    const map = {};
+    state.roomEntries.filter(e=>e.room===room).forEach(e=>{
+      const k = dateKey(e.ts);
+      if(!map[k]) map[k] = {dead:0, feed:0};
+      map[k].dead += Number(e.dead||0);
+      map[k].feed += Number(e.feed||0);
+    });
+    const keys = Object.keys(map).sort();
+    return { labels:keys, dead:keys.map(k=>map[k].dead), feed:keys.map(k=>map[k].feed) };
+  }
+  function stockSeries(room){
+    const start = Number(state.settings[room+"Stock"]||0);
+    const events = [];
+    state.roomEntries.filter(e=>e.room===room).forEach(e=> events.push({k:dateKey(e.ts), dead:Number(e.dead||0), sold:0}));
+    state.salesEntries.filter(s=>s.room===room).forEach(s=> events.push({k:dateKey(s.ts), dead:0, sold:Number(s.qty||0)}));
+    const map = {};
+    events.forEach(ev=>{
+      if(!map[ev.k]) map[ev.k] = {dead:0, sold:0};
+      map[ev.k].dead += ev.dead;
+      map[ev.k].sold += ev.sold;
+    });
+    const keys = Object.keys(map).sort();
+    let running = start;
+    const values = [];
+    keys.forEach(k=>{
+      running -= (map[k].dead + map[k].sold);
+      values.push(Math.max(0, running));
+    });
+    return { labels:keys, values, start };
+  }
+  function revenueSeries(){
+    const map = {};
+    state.salesEntries.forEach(s=>{
+      const k = dateKey(s.ts);
+      map[k] = (map[k]||0) + Number(s.total||0);
+    });
+    const keys = Object.keys(map).sort();
+    return { labels:keys, values:keys.map(k=>map[k]) };
+  }
+  function merchantSummary(){
+    const map = {};
+    state.salesEntries.forEach(s=>{
+      const key = (s.merchant||"Unnamed").trim();
+      if(!map[key]) map[key] = { qty:0, total:0, count:0 };
+      map[key].qty += Number(s.qty||0);
+      map[key].total += Number(s.total||0);
+      map[key].count += 1;
+    });
+    return Object.keys(map).map(k=>({ merchant:k, ...map[k] })).sort((a,b)=>b.total-a.total);
+  }
+
+  // ---------- rendering: dashboard ----------
+  function renderKpis(){
+    const grid = document.getElementById("kpiGrid");
+    const r1Live = liveStock("room1"), r2Live = liveStock("room2");
+    const items = [
+      { label:"Live birds — total", value:num(r1Live+r2Live), cls:"green" },
+      { label:roomName("room1")+" live", value:num(r1Live), cls:"" },
+      { label:roomName("room2")+" live", value:num(r2Live), cls:"" },
+      { label:"Total dead (all-time)", value:num(totalDead("room1")+totalDead("room2")), cls:"red" },
+      { label:"Mortality rate", value:(((totalDead("room1")+totalDead("room2"))/(Math.max(1,Number(state.settings.room1Stock||0)+Number(state.settings.room2Stock||0)))*100).toFixed(1))+"%", cls:"red" },
+      { label:"Feed packets used", value:num(totalFeed("room1")+totalFeed("room2")), cls:"gold" },
+      { label:"Birds sold", value:num(totalBirdsSold()), cls:"" },
+      { label:"Total sales revenue", value:money(totalRevenue()), cls:"green" },
+    ];
+    grid.innerHTML = items.map(it=>`
+      <div class="kpi ${it.cls}">
+        <div class="label">${it.label}</div>
+        <div class="value mono">${it.value}</div>
+      </div>`).join("");
+  }
+
+  function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+  function renderCharts(){
+    document.getElementById("r1title").textContent = roomName("room1") + " — Dead vs Feed (daily)";
+    document.getElementById("r2title").textContent = roomName("room2") + " — Dead vs Feed (daily)";
+
+    const s1 = dailySeries("room1"), s2 = dailySeries("room2");
+    const gridColor = "#e5dcc3";
+
+    destroyChart("room1");
+    charts.room1 = new Chart(document.getElementById("chartRoom1"), {
+      data:{ labels:s1.labels, datasets:[
+        { type:"bar", label:"Dead", data:s1.dead, backgroundColor:"#8C3B2E", yAxisID:"y" },
+        { type:"line", label:"Feed packets", data:s1.feed, borderColor:"#C9962C", backgroundColor:"#C9962C", yAxisID:"y1", tension:0.3 }
+      ]},
+      options:{ responsive:true, scales:{
+        y:{ position:"left", grid:{color:gridColor}, title:{display:true,text:"Dead"} },
+        y1:{ position:"right", grid:{drawOnChartArea:false}, title:{display:true,text:"Feed packets"} }
+      }, plugins:{ legend:{position:"bottom"} } }
+    });
+
+    destroyChart("room2");
+    charts.room2 = new Chart(document.getElementById("chartRoom2"), {
+      data:{ labels:s2.labels, datasets:[
+        { type:"bar", label:"Dead", data:s2.dead, backgroundColor:"#8C3B2E", yAxisID:"y" },
+        { type:"line", label:"Feed packets", data:s2.feed, borderColor:"#C9962C", backgroundColor:"#C9962C", yAxisID:"y1", tension:0.3 }
+      ]},
+      options:{ responsive:true, scales:{
+        y:{ position:"left", grid:{color:gridColor}, title:{display:true,text:"Dead"} },
+        y1:{ position:"right", grid:{drawOnChartArea:false}, title:{display:true,text:"Feed packets"} }
+      }, plugins:{ legend:{position:"bottom"} } }
+    });
+
+    const allDates = Array.from(new Set([...s1.labels, ...s2.labels])).sort();
+    const map1d = Object.fromEntries(s1.labels.map((l,i)=>[l,s1.dead[i]]));
+    const map2d = Object.fromEntries(s2.labels.map((l,i)=>[l,s2.dead[i]]));
+    const map1f = Object.fromEntries(s1.labels.map((l,i)=>[l,s1.feed[i]]));
+    const map2f = Object.fromEntries(s2.labels.map((l,i)=>[l,s2.feed[i]]));
+
+    destroyChart("deadCompare");
+    charts.deadCompare = new Chart(document.getElementById("chartDeadCompare"), {
+      type:"bar",
+      data:{ labels:allDates, datasets:[
+        { label:roomName("room1"), data:allDates.map(d=>map1d[d]||0), backgroundColor:"#4B6B3A" },
+        { label:roomName("room2"), data:allDates.map(d=>map2d[d]||0), backgroundColor:"#8C3B2E" }
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{ y:{grid:{color:gridColor}} } }
+    });
+
+    destroyChart("feedCompare");
+    charts.feedCompare = new Chart(document.getElementById("chartFeedCompare"), {
+      type:"bar",
+      data:{ labels:allDates, datasets:[
+        { label:roomName("room1"), data:allDates.map(d=>map1f[d]||0), backgroundColor:"#C9962C" },
+        { label:roomName("room2"), data:allDates.map(d=>map2f[d]||0), backgroundColor:"#6B655A" }
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{ y:{grid:{color:gridColor}} } }
+    });
+
+    const stk1 = stockSeries("room1"), stk2 = stockSeries("room2");
+    const allStockDates = Array.from(new Set([...stk1.labels, ...stk2.labels])).sort();
+    function fillSeries(stk, labels){
+      let last = stk.start;
+      const lookup = Object.fromEntries(stk.labels.map((l,i)=>[l, stk.values[i]]));
+      return labels.map(d=>{ if(lookup[d]!==undefined){ last = lookup[d]; } return last; });
+    }
+    destroyChart("stock");
+    charts.stock = new Chart(document.getElementById("chartStock"), {
+      type:"line",
+      data:{ labels: allStockDates.length ? allStockDates : ["Start"], datasets:[
+        { label:roomName("room1"), data: allStockDates.length ? fillSeries(stk1, allStockDates) : [stk1.start], borderColor:"#4B6B3A", backgroundColor:"#4B6B3A", stepped:true },
+        { label:roomName("room2"), data: allStockDates.length ? fillSeries(stk2, allStockDates) : [stk2.start], borderColor:"#8C3B2E", backgroundColor:"#8C3B2E", stepped:true }
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{ y:{grid:{color:gridColor}, beginAtZero:true} } }
+    });
+
+    const rev = revenueSeries();
+    destroyChart("revenue");
+    charts.revenue = new Chart(document.getElementById("chartRevenue"), {
+      type:"bar",
+      data:{ labels: rev.labels.length ? rev.labels : ["No sales yet"], datasets:[
+        { label:"Revenue (QAR)", data: rev.labels.length ? rev.values : [0], backgroundColor:"#C9962C" }
+      ]},
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{grid:{color:gridColor}} } }
+    });
+
+    const merch = merchantSummary().slice(0,8);
+    destroyChart("merchants");
+    charts.merchants = new Chart(document.getElementById("chartMerchants"), {
+      type:"bar",
+      data:{ labels: merch.length ? merch.map(m=>m.merchant) : ["No sales yet"], datasets:[
+        { label:"Revenue (QAR)", data: merch.length ? merch.map(m=>m.total) : [0], backgroundColor:"#4B6B3A" }
+      ]},
+      options:{ indexAxis:"y", responsive:true, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:gridColor}} } }
+    });
+  }
+
+  // ---------- rendering: room log ----------
+  function renderRoomOptions(){
+    document.querySelectorAll("#entryRoom, #saleRoom").forEach(sel=>{
+      Array.from(sel.options).forEach(opt=>{
+        if(opt.value==="room1") opt.textContent = roomName("room1");
+        if(opt.value==="room2") opt.textContent = roomName("room2");
+      });
+    });
+  }
+
+  function renderRoomTable(){
+    const body = document.getElementById("roomTableBody");
+    const rows = [...state.roomEntries].sort((a,b)=>b.ts-a.ts);
+    if(rows.length===0){
+      body.innerHTML = `<tr class="empty-row"><td colspan="7">No room entries recorded yet.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map(e=>`
+      <tr>
+        <td class="mono">${fmtDate(e.ts)}</td>
+        <td class="mono">${fmtTime(e.ts)}</td>
+        <td><span class="tag ${e.room}">${roomName(e.room)}</span></td>
+        <td class="mono">${num(e.dead)}</td>
+        <td class="mono">${num(e.feed)}</td>
+        <td>${e.note ? e.note : "—"}</td>
+        <td><button class="btn danger small" data-del-room="${e.id}">Delete</button></td>
+      </tr>`).join("");
+  }
+
+  // ---------- rendering: sales ----------
+  function renderSalesTable(){
+    const body = document.getElementById("salesTableBody");
+    const rows = [...state.salesEntries].sort((a,b)=>b.ts-a.ts);
+    if(rows.length===0){
+      body.innerHTML = `<tr class="empty-row"><td colspan="8">No sales recorded yet.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map(s=>`
+      <tr>
+        <td class="mono">${fmtDate(s.ts)}</td>
+        <td class="mono">${fmtTime(s.ts)}</td>
+        <td>${s.merchant}</td>
+        <td>${s.room ? `<span class="tag ${s.room}">${roomName(s.room)}</span>` : "—"}</td>
+        <td class="mono">${num(s.qty)}</td>
+        <td class="mono">${money(s.price)}</td>
+        <td class="mono stamp-value">${money(s.total)}</td>
+        <td><button class="btn danger small" data-del-sale="${s.id}">Delete</button></td>
+      </tr>`).join("");
+
+    const list = document.getElementById("merchantList");
+    const names = Array.from(new Set(state.salesEntries.map(s=>s.merchant))).filter(Boolean);
+    list.innerHTML = names.map(n=>`<option value="${n}"></option>`).join("");
+  }
+
+  function renderMerchantTable(){
+    const body = document.getElementById("merchantTableBody");
+    const rows = merchantSummary();
+    if(rows.length===0){
+      body.innerHTML = `<tr class="empty-row"><td colspan="5">No sales recorded yet.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map(m=>`
+      <tr>
+        <td>${m.merchant}</td>
+        <td class="mono">${num(m.count)}</td>
+        <td class="mono">${num(m.qty)}</td>
+        <td class="mono stamp-value">${money(m.total)}</td>
+        <td class="mono">${money(m.qty ? m.total/m.qty : 0)}</td>
+      </tr>`).join("");
+  }
+
+  // ---------- master render ----------
+  function renderAll(){
+    renderRoomOptions();
+    renderKpis();
+    renderCharts();
+    renderRoomTable();
+    renderSalesTable();
+    renderMerchantTable();
+  }
+
+  // ---------- clock ----------
+  function tickClock(){
+    const now = Date.now();
+    document.getElementById("liveClock").textContent = fmtDate(now) + "  " + fmtTime(now);
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- settings ----------
+  document.getElementById("saveSettingsBtn").addEventListener("click", async ()=>{
+    state.settings.room1Name = document.getElementById("setRoom1Name").value.trim() || "Room 1";
+    state.settings.room2Name = document.getElementById("setRoom2Name").value.trim() || "Room 2";
+    state.settings.room1Stock = Number(document.getElementById("setRoom1Stock").value||0);
+    state.settings.room2Stock = Number(document.getElementById("setRoom2Stock").value||0);
+    await saveData();
+    renderAll();
+    showToast("Farm setup saved");
+  });
+
+  // ---------- room entry ----------
+  wireStampToggle("roomAutoStamp", "roomManualDT", "roomManualDate", "roomManualTime");
+  wireStampToggle("saleAutoStamp", "saleManualDT", "saleManualDate", "saleManualTime");
+
+  document.getElementById("addRoomEntryBtn").addEventListener("click", async ()=>{
+    const room = document.getElementById("entryRoom").value;
+    const dead = Number(document.getElementById("entryDead").value||0);
+    const feed = Number(document.getElementById("entryFeed").value||0);
+    const note = document.getElementById("entryNote").value.trim();
+    if(dead<0 || feed<0){ showToast("Values cannot be negative"); return; }
+    const ts = resolveTimestamp("roomAutoStamp", "roomManualDate", "roomManualTime");
+    if(ts===null) return;
+    state.roomEntries.push({ id:uid(), ts, room, dead, feed, note });
+    document.getElementById("entryDead").value = 0;
+    document.getElementById("entryFeed").value = 0;
+    document.getElementById("entryNote").value = "";
+    await saveData();
+    renderAll();
+    showToast("Entry recorded for " + roomName(room));
+  });
+
+  document.getElementById("roomTableBody").addEventListener("click", async (e)=>{
+    const id = e.target.getAttribute("data-del-room");
+    if(!id) return;
+    state.roomEntries = state.roomEntries.filter(x=>x.id!==id);
+    await saveData();
+    renderAll();
+    showToast("Entry deleted");
+  });
+
+  // ---------- sales ----------
+  function updateSalePreview(){
+    const qty = Number(document.getElementById("saleQty").value||0);
+    const price = Number(document.getElementById("salePrice").value||0);
+    document.getElementById("salePreviewTotal").textContent = money(qty*price);
+  }
+  document.getElementById("saleQty").addEventListener("input", updateSalePreview);
+  document.getElementById("salePrice").addEventListener("input", updateSalePreview);
+
+  document.getElementById("addSaleBtn").addEventListener("click", async ()=>{
+    const merchant = document.getElementById("saleMerchant").value.trim();
+    const room = document.getElementById("saleRoom").value;
+    const qty = Number(document.getElementById("saleQty").value||0);
+    const price = Number(document.getElementById("salePrice").value||0);
+    if(!merchant){ showToast("Enter a merchant name"); return; }
+    if(qty<=0){ showToast("Quantity must be greater than 0"); return; }
+    const ts = resolveTimestamp("saleAutoStamp", "saleManualDate", "saleManualTime");
+    if(ts===null) return;
+    const total = qty*price;
+    state.salesEntries.push({ id:uid(), ts, merchant, room, qty, price, total });
+    document.getElementById("saleMerchant").value = "";
+    document.getElementById("saleQty").value = 0;
+    document.getElementById("salePrice").value = 0;
+    updateSalePreview();
+    await saveData();
+    renderAll();
+    showToast("Sale recorded for " + merchant);
+  });
+
+  document.getElementById("salesTableBody").addEventListener("click", async (e)=>{
+    const id = e.target.getAttribute("data-del-sale");
+    if(!id) return;
+    state.salesEntries = state.salesEntries.filter(x=>x.id!==id);
+    await saveData();
+    renderAll();
+    showToast("Sale deleted");
+  });
+
+  // ---------- export ----------
+  document.getElementById("exportBtn").addEventListener("click", ()=>{
+    const wb = XLSX.utils.book_new();
+
+    const roomRows = [["Date","Time","Room","Dead birds","Feed packets","Note"]];
+    [...state.roomEntries].sort((a,b)=>a.ts-b.ts).forEach(e=>{
+      roomRows.push([fmtDate(e.ts), fmtTime(e.ts), roomName(e.room), e.dead, e.feed, e.note||""]);
+    });
+    const wsRoom = XLSX.utils.aoa_to_sheet(roomRows);
+    wsRoom["!cols"] = [{wch:12},{wch:10},{wch:14},{wch:11},{wch:13},{wch:32}];
+    XLSX.utils.book_append_sheet(wb, wsRoom, "Room Log");
+
+    const salesRows = [["Date","Time","Merchant","Room","Quantity","Price per bird (QAR)","Total (QAR)"]];
+    [...state.salesEntries].sort((a,b)=>a.ts-b.ts).forEach(s=>{
+      salesRows.push([fmtDate(s.ts), fmtTime(s.ts), s.merchant, s.room?roomName(s.room):"Unspecified", s.qty, s.price, s.total]);
+    });
+    const wsSales = XLSX.utils.aoa_to_sheet(salesRows);
+    wsSales["!cols"] = [{wch:12},{wch:10},{wch:22},{wch:14},{wch:10},{wch:18},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsSales, "Sales Ledger");
+
+    const merch = merchantSummary();
+    const merchRows = [["Merchant","Transactions","Total birds","Total revenue (QAR)","Avg price / bird (QAR)"]];
+    merch.forEach(m=> merchRows.push([m.merchant, m.count, m.qty, Math.round(m.total*100)/100, m.qty ? Math.round((m.total/m.qty)*100)/100 : 0]));
+    const wsMerch = XLSX.utils.aoa_to_sheet(merchRows);
+    wsMerch["!cols"] = [{wch:22},{wch:14},{wch:13},{wch:18},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, wsMerch, "Merchant Summary");
+
+    const summaryRows = [
+      ["Fouad Food — Farm Summary", "", "", ""],
+      ["Generated (Qatar time)", fmtDate(Date.now())+" "+fmtTime(Date.now()), "", ""],
+      [],
+      ["Room","Starting stock","Total dead","Mortality rate","Feed packets used","Birds sold","Live stock now"],
+      [roomName("room1"), state.settings.room1Stock, totalDead("room1"), mortalityRate("room1").toFixed(1)+"%", totalFeed("room1"), soldFromRoom("room1"), liveStock("room1")],
+      [roomName("room2"), state.settings.room2Stock, totalDead("room2"), mortalityRate("room2").toFixed(1)+"%", totalFeed("room2"), soldFromRoom("room2"), liveStock("room2")],
+      [],
+      ["Total birds sold", totalBirdsSold()],
+      ["Total sales revenue (QAR)", Math.round(totalRevenue()*100)/100]
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary["!cols"] = [{wch:26},{wch:16},{wch:14},{wch:14},{wch:18},{wch:12},{wch:15}];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Farm Summary");
+
+    XLSX.writeFile(wb, "Fouad-Food-Farm-Report-" + dateKey(Date.now()) + ".xlsx");
+    showToast("Excel report downloaded");
+  });
+
+  // ---------- reset ----------
+  document.getElementById("resetBtn").addEventListener("click", async ()=>{
+    if(!confirm("This will permanently delete all room entries and sales for everyone using this ledger. Continue?")) return;
+    state = { settings:{ room1Name:"Room 1", room2Name:"Room 2", room1Stock:0, room2Stock:0 }, roomEntries:[], salesEntries:[] };
+    await saveData();
+    document.getElementById("setRoom1Name").value = "Room 1";
+    document.getElementById("setRoom2Name").value = "Room 2";
+    document.getElementById("setRoom1Stock").value = 0;
+    document.getElementById("setRoom2Stock").value = 0;
+    renderAll();
+    showToast("All data reset");
+  });
+
+  // ---------- init ----------
+  async function init(){
+    await loadData();
+    document.getElementById("setRoom1Name").value = state.settings.room1Name;
+    document.getElementById("setRoom2Name").value = state.settings.room2Name;
+    document.getElementById("setRoom1Stock").value = state.settings.room1Stock;
+    document.getElementById("setRoom2Stock").value = state.settings.room2Stock;
+    renderAll();
+  }
+  init();
+
+})();
 </script>
 </body>
 </html>
